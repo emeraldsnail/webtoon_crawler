@@ -20,8 +20,12 @@ json_decoder = JSONDecoder()
 
 # Daum requires cookie to access json of webtoon image urls
 # Not sure if this cookie value is identical for all users
-# 'MTAuMTA%3D' is urlencoded base64-encoded '10.10' without quotes
+# 'MTAuMTA%3D' is urlencoded & base64-encoded '10.10' without quotes
+# TODO: automatically fetch cookie value from viewer url once, rather than using hardcoded value
 cookiestring = 'WEBTOON_VIEW=MTAuMTA%3D'
+
+save_path = 'daum/{category}/{title_id}/{episode_id}/'
+filename_pattern = '{original_filename}.jpg'
 
 class DaumSingleWebtoonCrawler:
 
@@ -41,6 +45,9 @@ class DaumSingleWebtoonCrawler:
     def extract_episode_id(self, url):
         path = os.path.split(urllib.parse.urlparse(url)[2])[-1]
         return path
+        
+    def extract_filename(self, url):
+        return os.path.split(urllib.parse.urlparse(url)[2])[-1]
 
     def build_list_url(self):
         # assume that the category is correct
@@ -67,7 +74,11 @@ class DaumSingleWebtoonCrawler:
         
         for url in urls:
             print(url)
-        
+            directory = save_path.format(category = self.category, title_id = self.title_id,
+                episode_id = episode_id)
+            filename = filename_pattern.format(original_filename = self.extract_filename(url))
+            print(directory, filename)
+            wc_util.save_to_binary_file(url, directory, filename)
         
     def crawl(self):
         rss_url = self.build_list_url()

@@ -1,5 +1,6 @@
 import urllib.request
 import httplib2
+import os.path
 
 httpclient = httplib2.Http()
 
@@ -18,12 +19,14 @@ def get_binary_from_url(url):
 def get_text_from_url(url, encoding = 'utf8'):
     return get_binary_from_url(url).decode(encoding)
     
-def save_to_binary_file(url, filename):
+def save_to_binary_file(url, directory, filename):
     binary_content = get_binary_from_url(url)
-    file = open(filename, 'wb')
+    
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    
+    path = os.path.join(directory, filename)
+    
+    file = open(path, 'wb')
     file.write(binary_content)
     file.close()
-    
-    
-#def soaphierarchy(hierarchy):
-#    for item in 

@@ -9,6 +9,9 @@ base_url = 'http://comic.naver.com'
 list_url = base_url + '/{category}/list.nhn?titleId={title_id}&page={page_id}'
 viewer_url = base_url + '/{category}/detail.nhn?titleId={titleId}&no={episode_id}'
 
+save_path = 'naver/{category}/{title_id}/{episode_id}/'
+filename_pattern = '{original_filename}'
+
 class NaverSingleWebtoonCrawler:
 
     # title_info is tuple of (category, title_id)
@@ -21,7 +24,7 @@ class NaverSingleWebtoonCrawler:
         return list_url.format(category = self.category, title_id = self.title_id, page_id = page)
         
     def get_episode_infos(self, content_soup):
-        title_results = content_soup.find('table', class_='viewList').find_all('tr')
+        title_results = content_soup.find('table', class_ = 'viewList').find_all('tr')
         infos = []
         
         if title_results != None:
@@ -30,15 +33,26 @@ class NaverSingleWebtoonCrawler:
                     title_cell = result.find('td', class_ = 'title')
                     if title_cell != None:
                         anchor = title_cell.find('a')
-                        if anchor != None:
-                            episode_url = urllib.parse.urljoin(base_url, anchor['href'])
-                            episode_title = anchor.string
-                            infos.append((episode_url, episode_title))
+                        episode_url = urllib.parse.urljoin(base_url, anchor['href'])
+                        episode_title = anchor.string
+                        infos.append((episode_url, episode_title))
                 except:
                     #pass malformed pages
                     print ('malformed page found')
                     
         return infos
+        
+    def extract_episode_id(self, url):
+        q = urllib.parse.urlparse(url).query
+        qsl = urllib.parse.parse_qsl(q)
+        dic = dict(qsl)
+        if 'no' in dic:
+            return dic['no']
+        else:
+            return dic['seq']
+        
+    def extract_filename(self, url):
+        return os.path.split(urllib.parse.urlparse(url)[2])[-1]
         
     def crawl_episode(self, episode_info):
         print('crawling single episode', episode_info[1])
@@ -47,8 +61,12 @@ class NaverSingleWebtoonCrawler:
         for image in images:
             src = image['src']
             print ('image:', src)
-            #path = os.path.split(urllib.parse.urlparse(src)[2])[-1]
-            #wc_util.save_to_binary_file(src, path)
+            
+            directory = save_path.format(category = self.category, title_id = self.title_id,
+                episode_id = self.extract_episode_id(episode_info[0]))
+            filename = filename_pattern.format(original_filename = self.extract_filename(src))
+            print(directory, filename)
+            wc_util.save_to_binary_file(src, directory, filename)
         
         
     def is_last_page(self, content_soup):

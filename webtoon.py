@@ -1,30 +1,42 @@
-﻿import urllib.request
-from bs4 import BeautifulSoup
-
-import wc_naver.category
+﻿import wc_naver.category as naver
 from wc_naver.naver_crawler import NaverSingleWebtoonCrawler
 
-import wc_daum.category
+import wc_daum.category as daum
 from wc_daum.daum_crawler import DaumSingleWebtoonCrawler
 
 # put (category, titleId) tuple of Naver webtoons
+# titleId can be obtained from the URL of the webtoon list page
+# ex) URL is 'http://comic.naver.com/webtoon/list.nhn?titleId=123456' => titleId is '123456'
 naver_title_infos = [
-    #(wc_naver.category.BEST_CHALLENGE, '477644'), #천지해
-    #(wc_naver.category.BEST_CHALLENGE, '247478'), #Nihil Dant
-    (wc_naver.category.WEBTOON, '471286')         #키드갱 시즌 2
+    #(naver.CHALLENGE, ''),
+    #(naver.CHALLENGE, ''),
+    #(naver.BEST_CHALLENGE, ''),
+    #(naver.BEST_CHALLENGE, ''),
+    #(naver.WEBTOON, ''),
+    #(naver.WEBTOON, ''),
+    #(naver.WEBTOON, ''),
 ]
 
+# put (category, titleId) tuple of Daum webtoons
+# titleId can be obtained from the URL of the webtoon list page.
+# ex) URL is 'http://cartoon.media.daum.net/webtoon/view/thisiswebtoon' => titleId is 'thisiswebtoon'
+# ex) URL is 'http://cartoon.media.daum.net/league/view/1234' => titleId is '1234'
 daum_title_infos = [
-    (wc_daum.category.WEBTOON, 'treasurehunter3'),
-    (wc_daum.category.LEAGUE, '2796')
-    #(wc_daum.category.WEBTOON, 'trace'),
+    #(daum.LEAGUE, ''),
+    #(daum.LEAGUE, ''),
+    #(daum.LEAGUE, ''),
+    #(daum.WEBTOON, ''),
+    #(daum.WEBTOON, ''),
+    #(daum.WEBTOON, ''),
+    #(daum.WEBTOON, ''),
+    #(daum.WEBTOON, ''),
 ]
-    
 
-for info in naver_title_infos:
-    crawler = NaverSingleWebtoonCrawler(info)
-    crawler.crawl()
+if __name__ == '__main__':
+    for info in naver_title_infos:
+        crawler = NaverSingleWebtoonCrawler(info)
+        crawler.crawl()
 
-for info in daum_title_infos:
-    crawler = DaumSingleWebtoonCrawler(info)
-    crawler.crawl()
+    for info in daum_title_infos:
+        crawler = DaumSingleWebtoonCrawler(info)
+        crawler.crawl()
