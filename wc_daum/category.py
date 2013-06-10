@@ -1,0 +1,2 @@
+WEBTOON = 'webtoon'
+LEAGUE = 'league'
