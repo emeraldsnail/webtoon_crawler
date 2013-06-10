@@ -8,22 +8,23 @@ import wc_daum.category
 from wc_daum.daum_crawler import DaumSingleWebtoonCrawler
 
 # put (category, titleId) tuple of Naver webtoons
-naver_title_infos = {
+naver_title_infos = [
     #(wc_naver.category.BEST_CHALLENGE, '477644'), #천지해
     #(wc_naver.category.BEST_CHALLENGE, '247478'), #Nihil Dant
-    #(wc_naver.category.WEBTOON, '471286')         #키드갱 시즌 2
-}
+    (wc_naver.category.WEBTOON, '471286')         #키드갱 시즌 2
+]
 
-daum_title_infos = {
-    #(wc_daum.category.WEBTOON, 'jebijeon')
-    (wc_daum.category.LEAGUE, '3670')
-}
+daum_title_infos = [
+    (wc_daum.category.WEBTOON, 'treasurehunter3'),
+    (wc_daum.category.LEAGUE, '2796')
+    #(wc_daum.category.WEBTOON, 'trace'),
+]
     
 
 for info in naver_title_infos:
-    crawler = NaverSingleWebtoonCrawler()
-    crawler.crawl(info)
+    crawler = NaverSingleWebtoonCrawler(info)
+    crawler.crawl()
 
 for info in daum_title_infos:
-    crawler = DaumSingleWebtoonCrawler()
-    crawler.crawl(info)
+    crawler = DaumSingleWebtoonCrawler(info)
+    crawler.crawl()

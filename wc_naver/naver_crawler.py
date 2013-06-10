@@ -10,11 +10,15 @@ list_url = base_url + '/{category}/list.nhn?titleId={title_id}&page={page_id}'
 viewer_url = base_url + '/{category}/detail.nhn?titleId={titleId}&no={episode_id}'
 
 class NaverSingleWebtoonCrawler:
+
+    # title_info is tuple of (category, title_id)
+    def __init__(self, title_info):
+        self.category = title_info[0]
+        self.title_id = title_info[1]
     
-    def build_list_url(self, title_info, page = 1):
+    def build_list_url(self, page = 1):
         # assume that the category is correct
-        return list_url.format(category = title_info[0], title_id = title_info[1],
-            page_id = page)
+        return list_url.format(category = self.category, title_id = self.title_id, page_id = page)
         
     def get_episode_infos(self, content_soup):
         title_results = content_soup.find('table', class_='viewList').find_all('tr')
@@ -43,8 +47,8 @@ class NaverSingleWebtoonCrawler:
         for image in images:
             src = image['src']
             print ('image:', src)
-            path = os.path.split(urllib.parse.urlparse(src)[2])[-1]
-            wc_util.save_to_binary_file(src, path)
+            #path = os.path.split(urllib.parse.urlparse(src)[2])[-1]
+            #wc_util.save_to_binary_file(src, path)
         
         
     def is_last_page(self, content_soup):
@@ -56,18 +60,16 @@ class NaverSingleWebtoonCrawler:
             #return True if malformed page. This prevents further process
             return True
     
-    # title_info is tuple of (category, title_id)
-    def crawl(self, title_info):
+    def crawl(self):
         current_page = 1
         while True:
-            url = self.build_list_url(title_info, current_page)
+            url = self.build_list_url(current_page)
             print ('page url', url)
             content = wc_util.get_text_from_url(url)
             content_soup = BeautifulSoup(content)
             episode_infos = self.get_episode_infos(content_soup)
             
             for episode_info in episode_infos:
-                #print(episode_info)
                 self.crawl_episode(episode_info)
             
             if self.is_last_page(content_soup):

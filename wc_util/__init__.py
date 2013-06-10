@@ -1,4 +1,10 @@
 import urllib.request
+import httplib2
+
+httpclient = httplib2.Http()
+
+def getdata(url, headers = {}, method = 'GET'):
+    return httpclient.request(url, method, headers)
 
 def get_binary_from_url(url):
     try:
@@ -17,3 +23,7 @@ def save_to_binary_file(url, filename):
     file = open(filename, 'wb')
     file.write(binary_content)
     file.close()
+    
+    
+#def soaphierarchy(hierarchy):
+#    for item in 
