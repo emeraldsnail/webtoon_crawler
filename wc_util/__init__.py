@@ -1,6 +1,7 @@
 import urllib.request
 import httplib2
 import os.path
+import re
 
 httpclient = httplib2.Http()
 
@@ -30,3 +31,6 @@ def save_to_binary_file(url, directory, filename):
     file = open(path, 'wb')
     file.write(binary_content)
     file.close()
+    
+def remove_invalid_filename_chars(name):
+    return re.sub(r'[/:\\*?"<>|]', '', name)

@@ -1,5 +1,5 @@
 ﻿import wc_naver.category as naver
-from wc_naver.naver_crawler import NaverSingleWebtoonCrawler
+from wc_naver.naver_single_webtoon_crawler import NaverSingleWebtoonCrawler
 
 import wc_daum.category as daum
 from wc_daum.daum_crawler import DaumSingleWebtoonCrawler
@@ -11,10 +11,10 @@ naver_title_infos = [
     #(naver.CHALLENGE, ''),
     #(naver.CHALLENGE, ''),
     #(naver.BEST_CHALLENGE, ''),
-    #(naver.BEST_CHALLENGE, ''),
+    (naver.BEST_CHALLENGE, '543192'),
     #(naver.WEBTOON, ''),
     #(naver.WEBTOON, ''),
-    #(naver.WEBTOON, ''),
+    #(naver.WEBTOON, '546622'),
 ]
 
 # put (category, titleId) tuple of Daum webtoons
