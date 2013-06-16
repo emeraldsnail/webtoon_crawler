@@ -32,5 +32,8 @@ def save_to_binary_file(url, directory, filename):
     file.write(binary_content)
     file.close()
     
+def extract_last(url):
+    return os.path.split(urllib.parse.urlparse(url)[2])[-1]
+    
 def remove_invalid_filename_chars(name):
     return re.sub(r'[/:\\*?"<>|]', '', name)

@@ -35,19 +35,26 @@ class NaverSingleWebtoonCrawler:
         
         if title_results != None:
             for result in title_results:
-                #try:
+                try:
                     title_cell = result.find('td', class_ = 'title')
                     if title_cell != None:
                         anchor = title_cell.find('a')
                         episode_url = urllib.parse.urljoin(base_url, anchor['href'])
                         episode_id = self.extract_episode_id(episode_url)
-                        episode_title = anchor.string.strip()
+                        episode_name = anchor.string.strip()
+                        episode_date = result.find('td', class_ = 'num').string.strip()
                         thumbnail_url = result.find('img')['src']
                         
-                        infos.append((episode_id, episode_title, episode_url, thumbnail_url))
-                #except:
+                        infos.append({
+                            'episode_id' : episode_id, 
+                            'episode_name' : episode_name,
+                            'episode_url' : episode_url,
+                            'episode_date' : episode_date,
+                            'thumbnail_url' : thumbnail_url,
+                        })
+                except:
                     #pass malformed pages
-                    #print ('malformed page found')
+                    print ('malformed page found')
                     
         return infos
         
@@ -76,7 +83,11 @@ class NaverSingleWebtoonCrawler:
             
             content_soup = BeautifulSoup(content)
             title_name = self.get_title_name(content_soup)
-            title_info = (self.category, self.title_id, title_name)
+            title_info = {
+                'category' : self.category,
+                'title_id' : self.title_id, 
+                'title_name' : title_name,
+            }
             
             episode_infos = self.get_episode_infos(content_soup) 
             for episode_info in episode_infos:

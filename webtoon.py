@@ -11,10 +11,10 @@ naver_title_infos = [
     #(naver.CHALLENGE, ''),
     #(naver.CHALLENGE, ''),
     #(naver.BEST_CHALLENGE, ''),
-    (naver.BEST_CHALLENGE, '543192'),
+    (naver.BEST_CHALLENGE, '392615'),
     #(naver.WEBTOON, ''),
     #(naver.WEBTOON, ''),
-    #(naver.WEBTOON, '546622'),
+    #(naver.WEBTOON, '497180'),
 ]
 
 # put (category, titleId) tuple of Daum webtoons
@@ -26,7 +26,7 @@ daum_title_infos = [
     #(daum.LEAGUE, ''),
     #(daum.LEAGUE, ''),
     #(daum.WEBTOON, ''),
-    #(daum.WEBTOON, ''),
+    #(daum.WEBTOON, 'acoustic'),
     #(daum.WEBTOON, ''),
     #(daum.WEBTOON, ''),
     #(daum.WEBTOON, ''),
