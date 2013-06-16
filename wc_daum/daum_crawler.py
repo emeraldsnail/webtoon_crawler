@@ -118,6 +118,14 @@ class DaumSingleEpisodeCrawler:
         
         directory = save_path.format(**self.headers)
         
+        # save the thumbnail
+        headers = self.headers.copy()
+        thumbnail_url = self.headers['thumbnail_url']
+        headers['original_filename'] = wc_util.extract_last(thumbnail_url)
+        t_filename = thumbnail_filename.format(**headers)
+        wc_util.save_to_binary_file(thumbnail_url, directory, t_filename)
+        
+        # save main images
         for url in urls:
             print(url)
             
