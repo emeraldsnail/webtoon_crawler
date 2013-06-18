@@ -1,7 +1,7 @@
 webtoon_crawler
 ===============
 
-webtoon_crawler is an automatic crawler of webtoons from Naver and Daum. You can download all image files from their webtoons, including the ones in Daum's league and Naver's challenge/best-challenge sections.
+webtoon_crawler is an automatic crawler of webtoons from Naver, Daum, and Nate. You can download all image files from their webtoons, including the ones in Daum's league and Naver's challenge/best-challenge sections.
 
 To use this software, add the title ids of webtoons as instructed in webtoon_crawler.py, and run the file with command "python webtoon_crawler.py". No additional installation is required.
 
