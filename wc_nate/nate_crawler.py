@@ -105,6 +105,7 @@ class NateSingleEpisodeCrawler:
         image_url = self.get_image_url(content_soup)
         headers = self.copy_headers_with_filename(image_url)
         filename = filename_pattern.format(**headers)
+        print(image_url)
         wc_util.save_to_binary_file(image_url, directory, filename)
         
         

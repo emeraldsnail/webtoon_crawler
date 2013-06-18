@@ -39,7 +39,6 @@ daum_title_infos = [
 # ex) URL is 'http://comics.nate.com/webtoon/detail.php?btno=12345' => titleId is '12345'
 nate_title_infos = [
     #'12345',
-    #'67890',
 ]
 
 if __name__ == '__main__':
