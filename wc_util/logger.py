@@ -1,24 +1,25 @@
 import os.path
 import time
 
-info_filename = "info.txt"
-log_filename = "download.log"
-timestamp = "TIMESTAMP"
-delimeter = ":"
-str_format = "{0}" + delimeter + "{1}\n"
+info_filename = 'info.txt'
+log_filename = 'download.log'
+timestamp = 'TIMESTAMP'
+delimeter = ':'
+str_format = '{0}' + delimeter + '{1}\n'
 
-webtoon_title = "WEBTOON_TITLE"
-webtoon_author = "WEBTOON_AUTHOR"
-webtoon_thumbnail = "WEBTOON_THUMBNAIL"
+webtoon_title = 'WEBTOON_TITLE'
+webtoon_author = 'WEBTOON_AUTHOR'
+webtoon_thumbnail = 'WEBTOON_THUMBNAIL'
 
-episode_title = "EPISODE_TITLE"
-episode_author = "EPISODE_AUTHOR"
-episode_date = "DATE"
-episode_filecount = "FILECOUNT"
-episode_filename = "FILE"
-episode_thumbnail = "THUMBNAIL"
+episode_title = 'EPISODE_TITLE'
+episode_author = 'EPISODE_AUTHOR'
+episode_date = 'DATE'
+episode_filecount = 'FILECOUNT'
+episode_thumbnail_url = 'THUMBNAIL_URL'
+episode_image_url = 'FILE_URL'
+episode_thumbnail = 'THUMBNAIL'
 
-downloaded = "DOWNLOADED"
+downloaded = 'DOWNLOADED'
 
 # TODO: improve the atomicity of writer classes.
 
@@ -31,9 +32,12 @@ class BaseWriter:
     def write_timestamp(self):
         self.write_in_format(timestamp, str(time.localtime()))
 
-    def write_in_format(self, head, content):
+    def write_in_format(self, head, content, should_flush = True):
+        head = (head or '').strip()
+        content = (content or '').strip()
         self.output.write(str_format.format(head, content))
-        self.output.flush() # auto flush
+        if should_flush:
+            self.output.flush() # flush every time
 
     def close(self):
         self.output.close()
@@ -49,6 +53,7 @@ class BaseReader:
             file = open(path, 'r')
             lines = file.readlines()
             self.expand(lines)
+            file.close()
 
     def is_empty(self):
         return not self.line_data
@@ -104,8 +109,8 @@ class InfoWriter(BaseWriter):
     def write_episode_filecount(self, filecount):
         self.write_in_format(episode_filecount, filecount)
 
-    def write_episode_filename(self, filename):
-        self.write_in_format(episode_filehame, filename)
+    def write_episode_image_url(self, image_url):
+        self.write_in_format(episode_image_url, image_url)
 
     def write_episode_thumbnail(self, thumbnail):
         self.write_in_format(episode_thumbnail, thumbnail)
@@ -114,16 +119,28 @@ class InfoWriter(BaseWriter):
 class InfoReader(BaseReader):
     def __init__(directory):
         super().__init__(directory, info_filename)
+        
+    def get_episode_filecount(self):
+        return self.read_last(episode_filecount)
+        
+    def get_episode_thumbnail_urls(self):
+        return self.read_all(episode_thumbnail_url)
+    
+    def get_episode_image_urls(self):
+        return self.read_all(episode_image_url)
 
 
 class LogWriter(BaseWriter):
     def __init__(directory):
         super().__init__(directory, log_filename)
 
-    def write_downloaded_filename(self, filename):
-        self.write_in_format(downloaded, filename)
+    def write_downloaded_file_url(self, file_url):
+        self.write_in_format(downloaded, file_url)
 
 
 class LogReader:
     def __init__(directory):
         super().__init__(directory, log_filename)
+        
+    def file_url_exists(self, file_url):
+        return file_url in self.read_all(downloaded)

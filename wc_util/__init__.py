@@ -42,14 +42,21 @@ def get_text_from_url(url, encoding = 'utf8'):
 def save_to_binary_file(url, directory, filename):
     binary_content = get_binary_from_url(url)
     
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    
-    path = os.path.join(directory, filename)
-    
-    file = open(path, 'wb')
-    file.write(binary_content)
-    file.close()
+    if binary_content:
+        try:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            
+            path = os.path.join(directory, filename)
+            
+            file = open(path, 'wb')
+            file.write(binary_content)
+            file.close()
+            return True
+        except:
+            return False
+    else:
+        return False
     
 def extract_last(url):
     return os.path.split(urllib.parse.urlparse(url)[2])[-1]
