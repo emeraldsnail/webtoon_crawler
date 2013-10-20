@@ -9,60 +9,96 @@ class CrawlTypeNotFoundException(Exception):
 # Base class for all single episode crawlers
 class BaseEpisodeCrawler:
     
-    def __init__(self, directory, crawl_type):
+    def __init__(self, directory, headers, crawl_type):
         self.directory = directory
+        self.headers = headers
         self.crawl_type = crawl_type
-        self.info_reader = logger.InfoReader(self.directory)
+        self.info_reader = None
         self.log_reader = logger.LogReader(self.directory)
+        self.info_writer = None
+        self.log_writer = None
     
-    # Determine filename to save from the file url
-    def filename_from_file_url(self, prefix, file_url):
+    # Determine thumbnail filename to save from the file url
+    def thumbnail_filename_from_url(self, prefix, url):
+        raise NotImplementedError('Subclass should override this method')
+    
+    # Determine image filename to save from the file url
+    def image_filename_from_url(self, prefix, url):
         raise NotImplementedError('Subclass should override this method')
      
     # Save an file from url
-    def save_file(self, prefix, file_url):
-        filename = filename_from_file_url(prefix, file_url)
+    def save_file(self, file_url, filename):
         if wc_util.save_to_binary_file(file_url, self.directory, filename):
+            print ('Successfully saved file from', file_url)
             # log if file is successfully downloaded
             if not self.log_writer:
                 self.log_writer = logger.LogWriter(self.directory)
             self.log_writer.write_downloaded_file_url(file_url)
+        else:
+            print ('Failed to save file from ', file_url)
         
     def crawl(self):
-        if self.crawl_type == CrawlType.FULL:
+        episode_title = self.headers['episode_name']
+    
+        if self.crawl_type == wc_util.CrawlType.FULL:
+            print('Starts full crawling ', episode_title)
             self.full_crawl()
-        elif self.crawlers == CrawlType.UPDATE:
+        elif self.crawl_type == wc_util.CrawlType.UPDATE:
+            print('Starts update crawling ', episode_title)
             self.update_crawl()
-        elif self.crawlers == CrawlType.SHALLOW:
+        elif self.crawl_type == wc_util.CrawlType.SHALLOW:
+            print('Starts shallow crawling ', episode_title)
             self.shallow_crawl()
         else:
             raise CrawlTypeNotFoundException('Crawl type is incorrect!')
-            
+        
+        print('Finished crawling ', episode_title)
+        
         # cleanup
         if self.info_writer:
             self.info_writer.close()
         if self.log_writer:
             self.log_writer.close()
         
-    # Crawl from scratch
+    # Crawl from scratch, overriding any existing files
     def full_crawl(self):
-        raise NotImplementedError('Subclass should override this method')
+        self.populate_episode_info()
+        self.info_reader = logger.InfoReader(self.directory)
+
+        # download thumbnails
+        thumbnail_urls = self.info_reader.get_episode_thumbnail_urls()
+        for thumbnail_url in thumbnail_urls:
+            filename = self.thumbnail_filename_from_url(thumbnail_prefix,
+                    thumbnail_url)
+            self.save_file(thumbnail_url, filename)
+        
+        # download images
+        image_urls = self.info_reader.get_episode_image_urls()
+        for index, image_url in enumerate(image_urls):
+            filename = self.image_filename_from_url(index+1, image_url)
+            self.save_file(image_url, filename)
         
     # Check info file and download missing ones.
     def shallow_crawl(self):
-        if self.info_reader.is_episode_complete():
+        if not self.info_reader:
+            self.info_reader = logger.InfoReader(self.directory)
+
+        if self.info_reader.is_complete():
             # Shallowly crawl thumbnails
-            thumbnail_urls = info_reader.get_episode_thumbnail_urls()
+            thumbnail_urls = self.info_reader.get_episode_thumbnail_urls()
             for thumbnail_url in thumbnail_urls:
                 if not self.log_reader.file_url_exists(thumbnail_url):
-                    self.save_file(thumbnail_prefix, thumbnail_url)
+                    filename = self.thumbnail_filename_from_url(
+                            thumbnail_prefix, thumbnail_url)
+                    self.save_file(thumbnail_url, filename)
                     
             # Shallowly crawl image files
-            image_urls = info_reader.get_episode_image_urls()
+            image_urls = self.info_reader.get_episode_image_urls()
             # TODO: make this for loop faster than this O(n**2)
             for index, image_url in enumerate(image_urls):
                 if not self.log_reader.file_url_exists(image_url):
-                    self.save_file(index, image_url)
+                    filename = self.image_filename_from_url(index+1, image_url)
+                    self.save_file(image_url, filename)
         else: 
             # Info file is populated before any actual downloading.
             # If info file is incomplete, we need to do full crawl.
@@ -72,7 +108,11 @@ class BaseEpisodeCrawler:
     # download them and update info file.
     def update_crawl(self):
         # update crawl is identical to (1) update info.txt (2) do shallow crawl
-        self.fetch_episode_info()
+        self.populate_episode_info()
         self.info_reader = logger.InfoReader(self.directory) # need new reader
         self.shallow_crawl()
+    
+    # fetch episode info from webpage and (over)write to info file
+    def populate_episode_info(self):
+        raise NotImplementedError('Subclass should override this method')
        

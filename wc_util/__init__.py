@@ -53,7 +53,7 @@ def save_to_binary_file(url, directory, filename):
             file.write(binary_content)
             file.close()
             return True
-        except:
+        except e:
             return False
     else:
         return False

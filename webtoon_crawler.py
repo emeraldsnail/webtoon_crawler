@@ -4,7 +4,7 @@ from wc_naver.naver_single_webtoon_crawler import NaverSingleWebtoonCrawler
 import wc_daum.category as daum
 from wc_daum.daum_crawler import DaumSingleWebtoonCrawler
 
-from wc_nate.nate_crawler import NateSingleWebtoonCrawler
+from wc_nate.nate_crawler import NateWebtoonCrawler
 
 import wc_util
 
@@ -45,12 +45,12 @@ daum_title_infos = [
 #     => titleId is '12345'
 nate_title_infos = [
     #'12345',
-    #'67890',
+    #'55200',
 ]
 
 if __name__ == '__main__':
     crawl_type = wc_util.get_crawl_type()
-
+    """
     for info in naver_title_infos:
         crawler = NaverSingleWebtoonCrawler(info)
         crawler.crawl()
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     for info in daum_title_infos:
         crawler = DaumSingleWebtoonCrawler(info)
         crawler.crawl()
-        
+    """     
     for info in nate_title_infos:
-        crawler = NateSingleWebtoonCrawler(info)
+        crawler = NateWebtoonCrawler(info, crawl_type)
         crawler.crawl()

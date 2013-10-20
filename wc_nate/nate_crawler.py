@@ -1,20 +1,25 @@
-from bs4 import BeautifulSoup
+import time
 
+from wc_base import base_crawler
 import wc_util
+from wc_util import logger
+
+from bs4 import BeautifulSoup
 
 base_url = 'http://comics.nate.com'
 list_url = base_url + '/webtoon/detail.php?btno={title_id}'
 viewer_url = list_url + '&bsno={episode_id}'
 
-save_path = 'nate/{title_name}/{episode_name}/'
-filename_pattern = '{original_filename}'
-thumbnail_filename = '{original_filename}'
+save_path = 'nate/{title_id}_{title_name}/{episode_id}_{episode_name}/'
+image_filename_pattern = '{prefix}_{timestamp}_{original_filename}'
+thumbnail_filename_pattern = '{prefix}_{original_filename}'
 
-class NateSingleWebtoonCrawler:
+class NateWebtoonCrawler:
 
-    # title_ic is btno
-    def __init__(self, title_id):
+    # title_id is btno
+    def __init__(self, title_id, crawl_type):
         self.title_id = title_id
+        self.crawl_type = crawl_type
     
     def get_title_name(self, content_soup):
         webtIntro = content_soup.find('dl', class_ = 'webtIntro')
@@ -32,11 +37,11 @@ class NateSingleWebtoonCrawler:
                 'episode_name': episode.string.strip(),
             }
             infos.append(episode_info)
-        
         return infos
         
     def crawl_episode(self, title_info, episode_info):
-        crawler = NateSingleEpisodeCrawler(title_info, episode_info)
+        crawler = NateEpisodeCrawler(title_info, episode_info,
+                self.crawl_type)
         crawler.crawl()
         
     def crawl(self):
@@ -56,21 +61,29 @@ class NateSingleWebtoonCrawler:
             self.crawl_episode(title_info, episode_info)    
         
         
-class NateSingleEpisodeCrawler:
+class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
 
     # title_info contains {title_id, title_name} as keys
     # episode_info contains {episode_id, episode_name} as keys 
-    def __init__(self, title_info, episode_info):
-        self.headers = dict(title_info)
-        self.headers.update(episode_info)
+    def __init__(self, title_info, episode_info, crawl_type):
+        self.title_info = title_info
+        self.episode_info = episode_info
+        headers = dict(title_info)
+        headers.update(episode_info)
         
-        title_name = self.headers['title_name']
-        self.headers['title_name'] = wc_util.remove_invalid_filename_chars(title_name)
+        title_name = headers['title_name']
+        headers['title_name'] = wc_util.remove_invalid_filename_chars(
+                title_name)
         
-        episode_name = self.headers['episode_name']
-        self.headers['episode_name'] = wc_util.remove_invalid_filename_chars(episode_name)
+        episode_name = headers['episode_name']
+        headers['episode_name'] = wc_util.remove_invalid_filename_chars(
+                episode_name)
+                
+        self.directory = self.get_save_path(headers)
+        super().__init__(self.directory, headers, crawl_type)
         
     def get_image_url(self, content_soup):
+        # Nate webtoons have only one image for each episode, '001.jpg'
         webtView = content_soup.find('div', class_ = 'webtView')
         img = webtView.find('img', alt = self.headers['title_name'])
         return img['src']
@@ -81,30 +94,42 @@ class NateSingleEpisodeCrawler:
         image = selected_dl.find('img')
         return image['src']
     
-    def copy_headers_with_filename(self, file_url):
+    def copy_headers_with_filename_and_prefix(self, file_url, prefix):
         headers = self.headers.copy()
         filename = wc_util.extract_last(file_url)
         headers['original_filename'] = filename
+        headers['prefix'] = prefix
         return headers
-    
-    def crawl(self):
-        print('crawling single episode', self.headers['episode_name'])
         
+    def populate_episode_info(self):
         url = viewer_url.format(**self.headers)
         content = wc_util.get_text_from_url(url)
         content_soup = BeautifulSoup(content)
-        directory = save_path.format(**self.headers)
         
-        # save thumbnail
+        # get thumbnail url
         t_url = self.get_thumbnail_url(content_soup)
-        t_headers = self.copy_headers_with_filename(t_url)
-        t_filename = thumbnail_filename.format(**t_headers)
-        wc_util.save_to_binary_file(t_url, directory, t_filename)
-        
-        # Nate webtoons have only one image for each episode
+        # get image url
         image_url = self.get_image_url(content_soup)
-        headers = self.copy_headers_with_filename(image_url)
-        filename = filename_pattern.format(**headers)
-        wc_util.save_to_binary_file(image_url, directory, filename)
         
+        info_writer = logger.InfoWriter(self.directory)
+        info_writer.write_webtoon_title(self.title_info['title_name'])
+        info_writer.write_episode_title(self.episode_info['episode_name'])
+        info_writer.write_episode_thumbnail_url(t_url)
+        info_writer.write_episode_image_url(image_url)
+        info_writer.write_complete()
+        info_writer.close()
         
+    
+    def get_save_path(self, headers):
+        return save_path.format(**headers)
+
+    def thumbnail_filename_from_url(self, prefix, url):
+        headers = self.copy_headers_with_filename_and_prefix(url, prefix)
+        return thumbnail_filename_pattern.format(**headers)
+        
+    def image_filename_from_url(self, prefix, url): 
+        headers = self.copy_headers_with_filename_and_prefix(url, prefix)
+        # Nate only has one image file per episode, with the same name.
+        # Need to use timestamp to distinguish them.
+        headers['timestamp'] = str(int(time.time() * 10.0))
+        return image_filename_pattern.format(**headers)
