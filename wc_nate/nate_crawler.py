@@ -79,8 +79,8 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         headers['episode_name'] = wc_util.remove_invalid_filename_chars(
                 episode_name)
                 
-        self.directory = self.get_save_path(headers)
-        super().__init__(self.directory, headers, crawl_type)
+        directory = save_path.format(**headers)
+        super().__init__(directory, headers, crawl_type)
         
     def get_image_url(self, content_soup):
         # Nate webtoons have only one image for each episode, '001.jpg'
@@ -93,14 +93,7 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         selected_dl = thumbSet.find('dl', class_ = 'selected')
         image = selected_dl.find('img')
         return image['src']
-    
-    def copy_headers_with_filename_and_prefix(self, file_url, prefix):
-        headers = self.headers.copy()
-        filename = wc_util.extract_last(file_url)
-        headers['original_filename'] = filename
-        headers['prefix'] = prefix
-        return headers
-        
+
     def populate_episode_info(self):
         url = viewer_url.format(**self.headers)
         content = wc_util.get_text_from_url(url)
@@ -118,17 +111,15 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         info_writer.write_episode_image_url(image_url)
         info_writer.write_complete()
         info_writer.close()
-        
-    
-    def get_save_path(self, headers):
-        return save_path.format(**headers)
 
     def thumbnail_filename_from_url(self, prefix, url):
-        headers = self.copy_headers_with_filename_and_prefix(url, prefix)
+        headers = wc_util.copy_headers_with_filename_and_prefix(self.headers,
+                prefix, url)
         return thumbnail_filename_pattern.format(**headers)
         
     def image_filename_from_url(self, prefix, url): 
-        headers = self.copy_headers_with_filename_and_prefix(url, prefix)
+        headers = wc_util.copy_headers_with_filename_and_prefix(self.headers,
+                prefix, url)
         # Nate only has one image file per episode, with the same name.
         # Need to use timestamp to distinguish them.
         headers['timestamp'] = str(int(time.time() * 10.0))

@@ -53,7 +53,7 @@ def save_to_binary_file(url, directory, filename):
             file.write(binary_content)
             file.close()
             return True
-        except e:
+        except:
             return False
     else:
         return False
@@ -67,3 +67,10 @@ def remove_invalid_filename_chars(name):
 def get_crawl_type():
     options = parser.parse_args()
     return options.crawl_type
+
+def copy_headers_with_filename_and_prefix(original_headers, prefix, file_url):
+    headers = original_headers.copy()
+    filename = extract_last(file_url)
+    headers['original_filename'] = filename
+    headers['prefix'] = prefix
+    return headers
