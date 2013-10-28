@@ -94,7 +94,8 @@ class BaseEpisodeCrawler:
         # download images
         image_urls = self.info_reader.get_episode_image_urls()
         for index, image_url in enumerate(image_urls):
-            filename = self.image_filename_from_url(index+1, image_url)
+            prefix = '{0:03d}'.format(index+1)
+            filename = self.image_filename_from_url(prefix, image_url)
             self.save_file(image_url, filename)
         
     # Check info file and download missing ones.
@@ -115,9 +116,9 @@ class BaseEpisodeCrawler:
             image_urls = self.info_reader.get_episode_image_urls()
             # TODO: make this for loop faster than this O(n**2)
             for index, image_url in enumerate(image_urls):
-                if not self.log_reader.file_url_exists(image_url):
-                    filename = self.image_filename_from_url(index+1, image_url)
-                    self.save_file(image_url, filename)
+                prefix = '{0:03d}'.format(index+1)
+                filename = self.image_filename_from_url(prefix, image_url)
+                self.save_file(image_url, filename)
         else: 
             # Info file is populated before any actual downloading.
             # If info file is incomplete, we need to do full crawl.

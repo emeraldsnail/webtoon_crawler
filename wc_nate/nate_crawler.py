@@ -1,5 +1,6 @@
 import bs4
 import time
+import wc_nate
 import wc_util
 
 from wc_base import base_crawler
@@ -15,7 +16,7 @@ class NateWebtoonCrawler(base_crawler.BaseWebtoonCrawler):
         return NateEpisodeCrawler(title_info, episode_info, self.crawl_type)
         
     def get_title_and_episode_info(self):
-        url = LIST_URL.format(title_id = self.title_info)
+        url = wc_nate.LIST_URL.format(title_id = self.title_info)
         content = wc_util.get_text_from_url(url)
         content_soup = bs4.BeautifulSoup(content)
         
@@ -65,7 +66,7 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         headers['episode_name'] = wc_util.remove_invalid_filename_chars(
                 episode_name)
                 
-        directory = SAVE_PATH.format(**headers)
+        directory = wc_nate.SAVE_PATH.format(**headers)
         super().__init__(directory, headers, crawl_type)
         
     def get_image_url(self, content_soup):
@@ -81,7 +82,7 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         return image['src']
 
     def populate_episode_info(self):
-        url = VIEWER_URL.format(**self.headers)
+        url = wc_nate.VIEWER_URL.format(**self.headers)
         content = wc_util.get_text_from_url(url)
         content_soup = bs4.BeautifulSoup(content)
         
@@ -101,7 +102,7 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
     def thumbnail_filename_from_url(self, prefix, url):
         headers = wc_util.copy_headers_with_filename_and_prefix(self.headers,
                 prefix, url)
-        return THUMBNAIL_FILENAME_PATTERN.format(**headers)
+        return wc_nate.THUMBNAIL_FILENAME_PATTERN.format(**headers)
         
     def image_filename_from_url(self, prefix, url): 
         headers = wc_util.copy_headers_with_filename_and_prefix(self.headers,
@@ -109,4 +110,4 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         # Nate only has one image file per episode, with the same name.
         # Need to use timestamp to distinguish them.
         headers['timestamp'] = str(int(time.time() * 10.0))
-        return IMAGE_FILENAME_PATTERN.format(**headers)
+        return wc_nate.IMAGE_FILENAME_PATTERN.format(**headers)
