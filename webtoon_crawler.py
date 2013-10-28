@@ -12,11 +12,11 @@ from wc_nate import nate_crawler
 # ex) URL is 'http://comic.naver.com/webtoon/list.nhn?titleId=123456'
 #    => titleId is '123456'
 naver_title_infos = [
-    (naver_category.CHALLENGE, '582948'),
     #(naver_category.CHALLENGE, ''),
-    (naver_category.BEST_CHALLENGE, '555616'),
+    #(naver_category.CHALLENGE, ''),
     #(naver_category.BEST_CHALLENGE, ''),
-    (naver_category.WEBTOON, '568986'),
+    #(naver_category.BEST_CHALLENGE, ''),
+    #(naver_category.WEBTOON, ''),
     #(naver_category.WEBTOON, ''),
 ]
 
@@ -39,20 +39,20 @@ daum_title_infos = [
 #     => titleId is '12345'
 nate_title_infos = [
     #'12345',
-    #'55200',
+    #'67890',
 ]
 
 if __name__ == '__main__':
     crawl_type = wc_util.get_crawl_type()
     
     for info in naver_title_infos:
-        crawler = naver_crawler.NaverSingleWebtoonCrawler(info, crawl_type)
+        crawler = naver_crawler.NaverWebtoonCrawler(info, crawl_type)
         crawler.crawl()
-    """
+    
     for info in daum_title_infos:
-        crawler = daum_crawler.DaumSingleWebtoonCrawler(info)
+        crawler = daum_crawler.DaumWebtoonCrawler(info, crawl_type)
         crawler.crawl()
-    """
+    
     for info in nate_title_infos:
         crawler = nate_crawler.NateWebtoonCrawler(info, crawl_type)
         crawler.crawl()
