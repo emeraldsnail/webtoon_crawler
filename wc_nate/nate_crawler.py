@@ -1,25 +1,32 @@
+import bs4
 import time
+import wc_util
 
 from wc_base import base_crawler
-import wc_util
 from wc_util import logger
 
-from bs4 import BeautifulSoup
 
-base_url = 'http://comics.nate.com'
-list_url = base_url + '/webtoon/detail.php?btno={title_id}'
-viewer_url = list_url + '&bsno={episode_id}'
-
-save_path = 'nate/{title_id}_{title_name}/{episode_id}_{episode_name}/'
-image_filename_pattern = '{prefix}_{timestamp}_{original_filename}'
-thumbnail_filename_pattern = '{prefix}_{original_filename}'
-
-class NateWebtoonCrawler:
-
+class NateWebtoonCrawler(base_crawler.BaseWebtoonCrawler):
     # title_info is (btno)
     def __init__(self, title_info, crawl_type):
-        self.title_id = title_info
-        self.crawl_type = crawl_type
+        super().__init__(title_info, crawl_type)
+        
+    def get_episode_crawler(self, title_info, episode_info):
+        return NateEpisodeCrawler(title_info, episode_info, self.crawl_type)
+        
+    def get_title_and_episode_info(self):
+        url = LIST_URL.format(title_id = self.title_info)
+        content = wc_util.get_text_from_url(url)
+        content_soup = bs4.BeautifulSoup(content)
+        
+        title_name = self.get_title_name(content_soup) 
+        title_info = {
+            'title_id': self.title_info,
+            'title_name': title_name,
+        }
+        
+        episode_infos = self.get_episode_infos(content_soup)
+        return title_info, episode_infos
     
     def get_title_name(self, content_soup):
         webtIntro = content_soup.find('dl', class_ = 'webtIntro')
@@ -38,27 +45,6 @@ class NateWebtoonCrawler:
             }
             infos.append(episode_info)
         return infos
-        
-    def crawl_episode(self, title_info, episode_info):
-        crawler = NateEpisodeCrawler(title_info, episode_info,
-                self.crawl_type)
-        crawler.crawl()
-        
-    def crawl(self):
-        url = list_url.format(title_id = self.title_id)
-        content = wc_util.get_text_from_url(url)
-        content_soup = bs4.BeautifulSoup(content)
-        
-        title_name = self.get_title_name(content_soup) 
-        title_info = {
-            'title_id': self.title_id,
-            'title_name': title_name,
-        }
-        
-        episode_infos = self.get_episode_infos(content_soup)
-        
-        for episode_info in episode_infos:
-            self.crawl_episode(title_info, episode_info)    
         
         
 class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
@@ -79,7 +65,7 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         headers['episode_name'] = wc_util.remove_invalid_filename_chars(
                 episode_name)
                 
-        directory = save_path.format(**headers)
+        directory = SAVE_PATH.format(**headers)
         super().__init__(directory, headers, crawl_type)
         
     def get_image_url(self, content_soup):
@@ -95,7 +81,7 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         return image['src']
 
     def populate_episode_info(self):
-        url = viewer_url.format(**self.headers)
+        url = VIEWER_URL.format(**self.headers)
         content = wc_util.get_text_from_url(url)
         content_soup = bs4.BeautifulSoup(content)
         
@@ -115,7 +101,7 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
     def thumbnail_filename_from_url(self, prefix, url):
         headers = wc_util.copy_headers_with_filename_and_prefix(self.headers,
                 prefix, url)
-        return thumbnail_filename_pattern.format(**headers)
+        return THUMBNAIL_FILENAME_PATTERN.format(**headers)
         
     def image_filename_from_url(self, prefix, url): 
         headers = wc_util.copy_headers_with_filename_and_prefix(self.headers,
@@ -123,4 +109,4 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         # Nate only has one image file per episode, with the same name.
         # Need to use timestamp to distinguish them.
         headers['timestamp'] = str(int(time.time() * 10.0))
-        return image_filename_pattern.format(**headers)
+        return IMAGE_FILENAME_PATTERN.format(**headers)
