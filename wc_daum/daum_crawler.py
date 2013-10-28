@@ -1,13 +1,14 @@
 import bs4
-
-import urllib.request
-import urllib.parse
-from wc_base import base_crawler
-import wc_util
-import os.path
-import wc_daum.category
 import httplib2
 import json
+import wc_util
+
+from os import path
+from urllib import request
+from urllib import parse
+
+from wc_base import base_crawler
+from wc_daum import category
 from wc_util import logger
 
 
@@ -30,13 +31,35 @@ SAVE_PATH = 'daum/{category}/{title_id} {title_name}/{episode_id} {episode_name}
 IMAGE_FILENAME_PATTERN = '{prefix}_{original_filename}.jpg'
 THUMBNAIL_FILENAME_PATTERN = '{prefix}_{original_filename}.jpg'
 
-class DaumSingleWebtoonCrawler:
-
+class DaumWebtoonCrawler(base_crawler.BaseWebtoonCrawler):
     #title_info is a tuple of (category, title_id)
-    def __init__(self, title_info, crawl_type = 'shallow'):
-        self.category = title_info[0]
-        self.title_id = title_info[1]
-        self.crawl_type = crawl_type
+    def __init__(self, title_info, crawl_type):
+        super().__init__(title_info, crawl_type)
+
+    def get_episode_crawler(self, title_info, episode_info):
+        return DaumEpisodeCrawler(title_info, episode_info, self.crawl_type)
+        
+    def get_title_and_episode_info(self):
+        rss_url = LIST_URL.format(category = self.title_info[0],
+                title_id = self.title_info[1])
+        content = wc_util.get_text_from_url(rss_url)
+        content_soup = bs4.BeautifulSoup(content)
+        channel = content_soup.find('rss').find('channel')
+        title_name = channel.find('title').string.strip()
+        items = channel.find_all('item')
+        
+        title_info = {
+            'category' : self.title_info[0],
+            'title_id' : self.title_info[1],
+            'title_name' : title_name,
+        }
+
+        episode_infos = []
+        for item in items:
+            episode_infos.append(self.build_episode_info(item))
+        
+        # In RSS, the episodes are sorted in reverse chronological order.
+        return title_info, reversed(episode_infos)
         
     def build_episode_info(self, item):
         episode_url = item.find('link').string.strip()
@@ -54,31 +77,7 @@ class DaumSingleWebtoonCrawler:
             'episode_url' : episode_url,
             'episode_date' : episode_date,
             'thumbnail_url' : thumbnail_url,
-        }
-        
-    def crawl_episode(self, title_info, episode_info):
-        crawler = DaumEpisodeCrawler(title_info, episode_info, self.crawl_type)
-        crawler.crawl()      
-        
-    def crawl(self):
-        rss_url = LIST_URL.format(category = self.category,
-                title_id = self.title_id)
-        content = wc_util.get_text_from_url(rss_url)
-        content_soup = bs4.BeautifulSoup(content)
-        channel = content_soup.find('rss').find('channel')
-        title_name = channel.find('title').string.strip()
-        items = channel.find_all('item')
-        
-        title_info = {
-            'category' : self.category,
-            'title_id' : self.title_id,
-            'title_name' : title_name,
-        }
-
-        for item in items:
-            episode_info = self.build_episode_info(item)
-            self.crawl_episode(title_info, episode_info)
-
+        }   
 
 class DaumEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
 
@@ -90,7 +89,7 @@ class DaumEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
         headers.update(episode_info)
         self.http_headers = {'Cookie': COOKIESTRING}
         
-        if title_info['category'] == wc_daum.category.WEBTOON:
+        if title_info['category'] == category.WEBTOON:
             self.json_url = WEBTOON_JSON_URL
             self.json_result_key = 'images'
         else:

@@ -16,9 +16,9 @@ thumbnail_filename_pattern = '{prefix}_{original_filename}'
 
 class NateWebtoonCrawler:
 
-    # title_id is btno
-    def __init__(self, title_id, crawl_type):
-        self.title_id = title_id
+    # title_info is (btno)
+    def __init__(self, title_info, crawl_type):
+        self.title_id = title_info
         self.crawl_type = crawl_type
     
     def get_title_name(self, content_soup):
@@ -47,7 +47,7 @@ class NateWebtoonCrawler:
     def crawl(self):
         url = list_url.format(title_id = self.title_id)
         content = wc_util.get_text_from_url(url)
-        content_soup = BeautifulSoup(content)
+        content_soup = bs4.BeautifulSoup(content)
         
         title_name = self.get_title_name(content_soup) 
         title_info = {
@@ -97,7 +97,7 @@ class NateEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
     def populate_episode_info(self):
         url = viewer_url.format(**self.headers)
         content = wc_util.get_text_from_url(url)
-        content_soup = BeautifulSoup(content)
+        content_soup = bs4.BeautifulSoup(content)
         
         # get thumbnail url
         t_url = self.get_thumbnail_url(content_soup)

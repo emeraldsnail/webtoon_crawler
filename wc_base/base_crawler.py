@@ -1,12 +1,31 @@
 import wc_util
 from wc_util import logger
 
-thumbnail_prefix = 'thumbnail'
+THUMBNAIL_PREFIX = 'thumbnail'
 
 class CrawlTypeNotFoundException(Exception):
     pass
 
-# Base class for all single episode crawlers
+# Base class for all title (webtoon) crawlers
+class BaseWebtoonCrawler:
+    def __init__(self, title_info, crawl_type):
+        self.crawl_type = crawl_type
+        self.title_info = title_info
+    
+    def crawl(self):
+        title_info , episode_infos = self.get_title_and_episode_info()
+        for episode_info in episode_infos:
+            episode_crawler = self.get_episode_crawler(title_info, episode_info)
+            episode_crawler.crawl()
+        
+    def get_episode_crawler(self, title_info, episode_info):
+        raise NotImplementedError('Subclass should override this method')
+        
+    def get_title_and_episode_info(self):
+        raise NotImplementedError('Subclass should override this method')
+    
+    
+# Base class for all episode crawlers
 class BaseEpisodeCrawler:
     
     def __init__(self, directory, headers, crawl_type):
@@ -26,7 +45,7 @@ class BaseEpisodeCrawler:
     def image_filename_from_url(self, prefix, url):
         raise NotImplementedError('Subclass should override this method')
      
-    # Save an file from url
+    # Save an file from url and log the download
     def save_file(self, file_url, filename):
         if wc_util.save_to_binary_file(file_url, self.directory, filename):
             print ('Successfully saved file from', file_url)
@@ -68,7 +87,7 @@ class BaseEpisodeCrawler:
         # download thumbnails
         thumbnail_urls = self.info_reader.get_episode_thumbnail_urls()
         for thumbnail_url in thumbnail_urls:
-            filename = self.thumbnail_filename_from_url(thumbnail_prefix,
+            filename = self.thumbnail_filename_from_url(THUMBNAIL_PREFIX,
                     thumbnail_url)
             self.save_file(thumbnail_url, filename)
         
@@ -89,7 +108,7 @@ class BaseEpisodeCrawler:
             for thumbnail_url in thumbnail_urls:
                 if not self.log_reader.file_url_exists(thumbnail_url):
                     filename = self.thumbnail_filename_from_url(
-                            thumbnail_prefix, thumbnail_url)
+                            THUMBNAIL_PREFIX, thumbnail_url)
                     self.save_file(thumbnail_url, filename)
                     
             # Shallowly crawl image files
