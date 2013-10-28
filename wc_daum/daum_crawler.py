@@ -1,39 +1,42 @@
-from bs4 import BeautifulSoup
+import bs4
 
 import urllib.request
 import urllib.parse
+from wc_base import base_crawler
 import wc_util
 import os.path
 import wc_daum.category
 import httplib2
-from json import JSONDecoder
+import json
+from wc_util import logger
 
 
-base_url = 'http://cartoon.media.daum.net'
+BASE_URL = 'http://cartoon.media.daum.net'
 # Daum supports RSS feed, in which all episodes are shown
-list_url = base_url + '/{category}/rss/{title_id}'
+LIST_URL = BASE_URL + '/{category}/rss/{title_id}'
 
-webtoon_json_url = base_url + '/webtoon/viewer_images.js?webtoon_episode_id={episode_id}'
-league_json_url = base_url + '/data/leaguetoon/viewer_images/{episode_id}'
+WEBTOON_JSON_URL = BASE_URL + '/webtoon/viewer_images.js?webtoon_episode_id={episode_id}'
+LEAGUE_JSON_URL = BASE_URL + '/data/leaguetoon/viewer_images/{episode_id}'
 
-json_decoder = JSONDecoder()
+JSON_DECODER = json.JSONDecoder()
 
 # Daum requires cookie to access json of webtoon image urls
 # Not sure if this cookie value is identical for all users
 # 'MTAuMTA%3D' is urlencoded & base64-encoded '10.10' without quotes
 # TODO: automatically fetch cookie value from viewer url once, rather than using hardcoded value
-cookiestring = 'WEBTOON_VIEW=MTAuMTA%3D'
+COOKIESTRING = 'WEBTOON_VIEW=MTAuMTA%3D'
 
-save_path = 'daum/{category}/{title_name}/{episode_id} {episode_name}/'
-filename_pattern = '{original_filename}.jpg'
-thumbnail_filename = '{original_filename}.jpg'
+SAVE_PATH = 'daum/{category}/{title_id} {title_name}/{episode_id} {episode_name}/'
+IMAGE_FILENAME_PATTERN = '{prefix}_{original_filename}.jpg'
+THUMBNAIL_FILENAME_PATTERN = '{prefix}_{original_filename}.jpg'
 
 class DaumSingleWebtoonCrawler:
 
     #title_info is a tuple of (category, title_id)
-    def __init__(self, title_info):
+    def __init__(self, title_info, crawl_type = 'shallow'):
         self.category = title_info[0]
         self.title_id = title_info[1]
+        self.crawl_type = crawl_type
         
     def build_episode_info(self, item):
         episode_url = item.find('link').string.strip()
@@ -41,7 +44,9 @@ class DaumSingleWebtoonCrawler:
         episode_name = item.find('title').string.strip()
         # format of yyyy-MM-dd HH:mm:ss
         episode_date = item.find('pubdate').string.strip().split(' ')[0]
-        thumbnail_url = BeautifulSoup(item.find('description').string).find('img')['src']
+        
+        content_soup = bs4.BeautifulSoup(item.find('description').string)
+        thumbnail_url = content_soup.find('img')['src']
         
         return {
             'episode_id' : episode_id,
@@ -52,13 +57,14 @@ class DaumSingleWebtoonCrawler:
         }
         
     def crawl_episode(self, title_info, episode_info):
-        crawler = DaumSingleEpisodeCrawler(title_info, episode_info)
+        crawler = DaumEpisodeCrawler(title_info, episode_info, self.crawl_type)
         crawler.crawl()      
         
     def crawl(self):
-        rss_url = list_url.format(category = self.category, title_id = self.title_id)
+        rss_url = LIST_URL.format(category = self.category,
+                title_id = self.title_id)
         content = wc_util.get_text_from_url(rss_url)
-        content_soup = BeautifulSoup(content)
+        content_soup = bs4.BeautifulSoup(content)
         channel = content_soup.find('rss').find('channel')
         title_name = channel.find('title').string.strip()
         items = channel.find_all('item')
@@ -74,64 +80,67 @@ class DaumSingleWebtoonCrawler:
             self.crawl_episode(title_info, episode_info)
 
 
-class DaumSingleEpisodeCrawler:
+class DaumEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
 
-    def __init__(self, title_info, episode_info):
-        self.headers = dict(title_info)
-        self.headers.update(episode_info)
-        self.http_headers = {'Cookie': cookiestring}
-        
+    # title_info is (category, title_id, title_name)
+    # episode_info is (episode_id, episode_name, episode_url, episode_date,
+    #        thumbnail_url)
+    def __init__(self, title_info, episode_info, crawl_type):
+        headers = dict(title_info)
+        headers.update(episode_info)
+        self.http_headers = {'Cookie': COOKIESTRING}
         
         if title_info['category'] == wc_daum.category.WEBTOON:
-            self.json_url = webtoon_json_url
+            self.json_url = WEBTOON_JSON_URL
             self.json_result_key = 'images'
         else:
-            self.json_url = league_json_url
+            self.json_url = LEAGUE_JSON_URL
             self.json_result_key = 'data'
 
-        title_name = self.headers['title_name']
-        self.headers['title_name'] = wc_util.remove_invalid_filename_chars(title_name)
+        title_name = headers['title_name']
+        headers['title_name'] = wc_util.remove_invalid_filename_chars(
+                title_name)
         
-        episode_name = self.headers['episode_name']
-        self.headers['episode_name'] = wc_util.remove_invalid_filename_chars(episode_name)
-    
-    
+        episode_name = headers['episode_name']
+        headers['episode_name'] = wc_util.remove_invalid_filename_chars(
+                episode_name)
+                
+        directory = SAVE_PATH.format(**headers)
+        super().__init__(directory, headers, crawl_type)
+      
     def get_json_data(self, json_url):
-        # for some reason, going through a common method does not work with httplib2
-        # Also, in httplib2 the types of key/value in http_headers are not consistent: sometimes bytes, sometimes str.
-        # think it's a bug in httplib2...?
+        # For some reason, going through a common method does not work with
+        # httplib2l Also, in httplib2 the types of key/value in http_headers are
+        # not consistent: sometimes bytes, sometimes str. think it's a bug in
+        # httplib2...?
         http = httplib2.Http()
-        response, content = http.request(json_url, 'GET', headers = self.http_headers)
-        return json_decoder.decode(content.decode('utf8'))    
-        
-        
-    def crawl(self):
-        print('crawling single episode', self.headers['episode_name'])
-        
-        episode_id = wc_util.extract_last(self.headers['episode_url'])
+        response, content = http.request(json_url, 'GET',
+                headers = self.http_headers)
+        return JSON_DECODER.decode(content.decode('utf8'))    
+                
+    def populate_episode_info(self):
         json_url = self.json_url.format(**self.headers)
         json_data = self.get_json_data(json_url)
         
-        urls = []
+        image_urls = []
         for image in json_data[self.json_result_key]:
-            urls.append(image['url'])
+            image_urls.append(image['url'])
         
-        directory = save_path.format(**self.headers)
+        info_writer = logger.InfoWriter(self.directory)
+        info_writer.write_webtoon_title(self.headers['title_name'])
+        info_writer.write_episode_title(self.headers['episode_name'])
+        info_writer.write_episode_thumbnail_url(self.headers['thumbnail_url'])
+        for image_url in image_urls:
+            info_writer.write_episode_image_url(image_url)
+        info_writer.write_complete()
+        info_writer.close()
+
+    def thumbnail_filename_from_url(self, prefix, url):
+        headers = wc_util.copy_headers_with_filename_and_prefix(self.headers,
+                prefix, url)
+        return THUMBNAIL_FILENAME_PATTERN.format(**headers)
         
-        # save the thumbnail
-        headers = self.headers.copy()
-        thumbnail_url = self.headers['thumbnail_url']
-        headers['original_filename'] = wc_util.extract_last(thumbnail_url)
-        t_filename = thumbnail_filename.format(**headers)
-        wc_util.save_to_binary_file(thumbnail_url, directory, t_filename)
-        
-        # save main images
-        for url in urls:
-            print(url)
-            
-            headers = self.headers.copy()
-            headers['original_filename'] = wc_util.extract_last(url)
-            
-            filename = filename_pattern.format(**headers)
-            wc_util.save_to_binary_file(url, directory, filename)
-            
+    def image_filename_from_url(self, prefix, url):
+        headers = wc_util.copy_headers_with_filename_and_prefix(self.headers,
+                prefix, url)
+        return IMAGE_FILENAME_PATTERN.format(**headers) 
