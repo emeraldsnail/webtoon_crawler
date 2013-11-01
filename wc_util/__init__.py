@@ -27,9 +27,10 @@ parser.add_argument('-t', '--crawl-type', choices = all_crawl_types,
 def getdata(url, headers = {}, method = 'GET'):
     return httpclient.request(url, method, headers)
 
-def get_binary_from_url(url):
+def get_binary_from_url(url, headers = {}):
     try:
-        fp = urllib.request.urlopen(url)
+        req = urllib.request.Request(url, headers=headers)
+        fp = urllib.request.urlopen(req)
         binary = fp.read()
         fp.close()
         return binary
@@ -39,8 +40,8 @@ def get_binary_from_url(url):
 def get_text_from_url(url, encoding = 'utf8'):
     return get_binary_from_url(url).decode(encoding)
     
-def save_to_binary_file(url, directory, filename):
-    binary_content = get_binary_from_url(url)
+def save_to_binary_file(url, directory, filename, headers={}):
+    binary_content = get_binary_from_url(url, headers)
     
     if binary_content:
         try:

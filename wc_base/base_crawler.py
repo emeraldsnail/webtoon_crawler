@@ -36,6 +36,7 @@ class BaseEpisodeCrawler:
         self.log_reader = logger.LogReader(self.directory)
         self.info_writer = None
         self.log_writer = None
+        self.http_headers = {'Referer': headers['episode_url']}
     
     # Determine thumbnail filename to save from the file url
     def thumbnail_filename_from_url(self, prefix, url):
@@ -47,7 +48,8 @@ class BaseEpisodeCrawler:
      
     # Save an file from url and log the download
     def save_file(self, file_url, filename):
-        if wc_util.save_to_binary_file(file_url, self.directory, filename):
+        if wc_util.save_to_binary_file(file_url, self.directory, filename,
+                                       headers=self.http_headers):
             print ('Successfully saved file from', file_url)
             # log if file is successfully downloaded
             if not self.log_writer:
