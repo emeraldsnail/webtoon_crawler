@@ -109,14 +109,13 @@ class NaverEpisodeCrawler(base_crawler.BaseEpisodeCrawler):
     def __init__(self, title_info, episode_info, crawl_type):        
         headers = dict(title_info)
         headers.update(episode_info)
-        directory = wc_naver.SAVE_PATH.format(**headers)
-
+        
         headers['title_name'] = wc_util.remove_invalid_filename_chars(
                 headers['title_name'])
         
         headers['episode_name'] = wc_util.remove_invalid_filename_chars(
                 headers['episode_name'])
-        
+        directory = wc_naver.SAVE_PATH.format(**headers)
         super().__init__(directory, headers, crawl_type)
     
     def populate_episode_info(self):
